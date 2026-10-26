@@ -1,0 +1,39 @@
+# Fixed settings. Secrets live in .env, never here.
+db_path = "data/stockbot.db"
+universe_csv = "data/sp500.csv"
+benchmark = "SPY"
+seed = 42
+device = "auto"  # auto = mps, then cuda, then cpu
+
+[data]
+price_years = 5
+news_days = 365
+news_chunk_days = 30
+finnhub_rpm = 50
+alpaca_batch = 100
+stale_max_frac = 0.05
+
+[model]
+seq_len = 20
+hidden_size = 64
+num_layers = 2
+dropout = 0.2
+lr = 1e-3
+weight_decay = 1e-4
+batch_size = 512
+max_epochs = 50
+patience = 5
+
+[walkforward]
+oos_months = 24
+n_folds = 8
+embargo = 5
+val_frac = 0.10
+leakcheck_sample = 20
+
+[strategy]
+top_n = 4
+threshold = 0.55
+position_pct = 0.05
+cost_bps = 5
+max_daily_drawdown = 0.03
