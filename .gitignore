@@ -13,3 +13,4 @@ logs/
 reports/
 .DS_Store
 .claude/settings.local.json
+.vscode/

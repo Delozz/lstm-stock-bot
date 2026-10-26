@@ -84,6 +84,7 @@ uv run stockbot trade --dry-run
 - SPY is a benchmark. It is never traded.
 - Don't quote the old bot's 60% accuracy or 2.8% return anywhere. Only numbers from `backtest` or the paper run.
 - Don't edit `data/sp500.csv` by hand without saying so.
+- `ModuleNotFoundError: No module named 'stockbot'`: something on this Mac keeps setting the macOS `hidden` flag on `.venv`'s `.pth` files, and Python skips hidden `.pth` files. `chflags nohidden` does not stick. Run CLI commands as `PYTHONPATH=src uv run stockbot ...`; pytest already sets `pythonpath = ["src"]`.
 
 ## Tooling
 

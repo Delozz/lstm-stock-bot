@@ -10,7 +10,38 @@ against logistic, random, and SPY baselines, and executed on the **Alpaca paper*
 ## Results
 
 <!-- RESULTS:START -->
-_Run `stockbot backtest` to populate this section._
+Walk-forward out-of-sample test, **2024-10-24 to 2026-10-23** (501 sessions, 8 folds,
+100 tickers), net of 10 bps round-trip costs. Seed 42.
+
+| Model | Accuracy (95% CI) | Hit rate | Mean net return / trade (95% CI) | Sharpe | Max DD | Total return | Trades | Trades/day |
+|---|---|---|---|---|---|---|---|---|
+| LSTM (price + sentiment) | 50.5% [50.1%, 51.0%] | 48.6% | 0.011% [-0.193%, 0.215%] | 0.05 | -3.29% | 0.20% | 484 | 0.97 |
+| LSTM (price only) | 50.5% [50.1%, 51.0%] | 46.8% | -0.086% [-0.242%, 0.072%] | -0.57 | -5.30% | -3.74% | 864 | 1.72 |
+| Logistic regression | 50.4% [50.0%, 50.9%] | 46.3% | -0.100% [-0.299%, 0.094%] | -0.48 | -6.40% | -4.69% | 913 | 1.82 |
+| Random 4 picks (mean of 100) | n/a | 47.8% | -0.072% | -1.03 | -8.35% | -6.98% | 2004 | 4.00 |
+| SPY buy and hold | n/a | n/a | n/a | 1.03 | -18.74% | 35.17% | n/a | n/a |
+
+![Walk-forward equity curves](docs/img/backtest-equity.png)
+
+**What this shows**
+
+- **No detectable edge.** 50.8% of out-of-sample sessions closed above their open, so the
+  LSTM's 50.5% accuracy (CI 50.1% to 51.0%) is no better than always guessing "up".
+- **Flat after costs.** The LSTM made +0.20% over two years. Its mean return per trade
+  (+0.011%) has a 95% interval that spans zero. SPY returned +35% over the same period.
+- **Selectivity limited losses.** The 0.55 confidence threshold cut the LSTM to about one
+  trade a day, and it lost less than the logistic baseline (-4.7%), the price-only LSTM
+  (-3.7%), and random picks (-7.0%). These gaps sit inside the confidence intervals.
+- **Sentiment ablation is inconclusive.** Adding headline sentiment moved mean return from
+  -0.086% to +0.011% per trade, but the intervals overlap. With one year of news, most
+  training windows contain no headlines.
+- The final model's validation loss is 0.6931 (= ln 2), meaning it learned roughly the base
+  rate. On 2026-10-26 no ticker cleared the 0.55 threshold (top: MRK at 0.52), so the bot
+  placed no orders.
+
+Daily open-to-close direction for large caps is close to a coin flip. This pipeline is built
+to measure that honestly: walk-forward folds, an embargo, train-only normalization, and
+automated look-ahead checks.
 <!-- RESULTS:END -->
 
 ## How it works
@@ -84,8 +115,10 @@ Tests use fixtures and fake clients only; they never call Alpaca or Finnhub.
 ## Limitations
 
 - **Survivorship bias:** today's large-cap constituents are applied to five years of history.
-- **Short sentiment history:** Finnhub's free tier returns about a year of headlines, so most
-  training windows have no news and the sentiment ablation has limited power.
+- **Short sentiment history:** Finnhub's free tier returned exactly one year of headlines
+  (about 2,150 per ticker), so most training windows have no news and the sentiment ablation
+  has limited power.
+- **Universe:** a hand-built list of about 100 of the largest S&P 500 names (`data/sp500.csv`).
 - **Fill model:** the backtest assumes official open and close prices plus a flat cost.
 - **Exposure:** at most 4 x 5% = 20% of equity is invested on any day, so absolute returns are
   not directly comparable with a fully invested SPY position.
