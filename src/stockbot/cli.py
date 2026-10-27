@@ -205,11 +205,12 @@ def backtest_cmd(
         set_seed(cfg["seed"])
         device = pick_device(cfg.get("device", "auto"))
         log.info("seed %d, device %s", cfg["seed"], device)
-        metrics, curves = run_backtest(conn, cfg, device, ablation=not no_ablation)
+        metrics, curves, preds = run_backtest(conn, cfg, device, ablation=not no_ablation)
         run_id = f"lstm-{datetime.now(NY):%Y%m%d-%H%M%S}"
-        return [
-            str(write_backtest_report(metrics, curves, run_id=run_id, cfg=cfg, git_sha=git_sha()))
-        ]
+        report = write_backtest_report(
+            metrics, curves, preds, run_id=run_id, cfg=cfg, git_sha=git_sha()
+        )
+        return [str(report)]
 
     _run("backtest", config, body)
 

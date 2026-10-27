@@ -4,8 +4,21 @@ A daily S&P 500 direction model: a 2-layer LSTM over 20 sessions of price featur
 Finnhub headline sentiment (VADER), validated with a leakage-checked walk-forward backtest
 against logistic, random, and SPY baselines, and executed on the **Alpaca paper** API.
 
-> Results below are produced by `stockbot backtest` and reported as-is, including
-> confidence intervals. No numbers in this README were tuned toward a target.
+**Highlights**
+
+- End-to-end pipeline: data ingestion (Alpaca, Finnhub), SQLite store, 13 features, PyTorch
+  LSTM, walk-forward backtest, signal generation, and paper order execution, all from one
+  Typer CLI.
+- Out-of-sample evaluation only: 8 walk-forward folds over 2 years, a 5-session embargo,
+  train-only normalization, and automated look-ahead checks that block training on failure.
+- Honest benchmarking: logistic regression, 100 random-pick runs, an ablation without
+  sentiment, SPY, confidence intervals on every headline number, and a reproducible seed
+  (a re-run reproduces every metric exactly).
+- Paper-only by construction: the broker client refuses any non-paper endpoint, the bot
+  cannot open a short, and orders are idempotent.
+
+> Results below are produced by `stockbot backtest` and reported as-is. No numbers in this
+> README were tuned toward a target.
 
 ## Results
 
@@ -25,19 +38,29 @@ Walk-forward out-of-sample test, **2024-10-24 to 2026-10-23** (501 sessions, 8 f
 
 **What this shows**
 
-- **No detectable edge.** 50.8% of out-of-sample sessions closed above their open, so the
-  LSTM's 50.5% accuracy (CI 50.1% to 51.0%) is no better than always guessing "up".
-- **Flat after costs.** The LSTM made +0.20% over two years. Its mean return per trade
-  (+0.011%) has a 95% interval that spans zero. SPY returned +35% over the same period.
-- **Selectivity limited losses.** The 0.55 confidence threshold cut the LSTM to about one
-  trade a day, and it lost less than the logistic baseline (-4.7%), the price-only LSTM
-  (-3.7%), and random picks (-7.0%). These gaps sit inside the confidence intervals.
-- **Sentiment ablation is inconclusive.** Adding headline sentiment moved mean return from
-  -0.086% to +0.011% per trade, but the intervals overlap. With one year of news, most
+- **The LSTM was the only strategy that didn't lose money after costs.** It finished at
+  +0.20% with a -3.3% max drawdown, against -3.7% for the price-only LSTM, -4.7% for logistic
+  regression, and -7.0% for random picks.
+- **Its edge is not statistically significant.** Accuracy is 50.5% (CI 50.1% to 51.0%) against
+  a 50.8% base rate of up sessions, and the mean return per trade (+0.011%) has a 95% interval
+  that spans zero. The gaps between strategies sit inside those intervals.
+- **The 0.55 confidence threshold is doing the work.** It kept the LSTM out of the market on
+  58% of sessions (about one trade a day versus four for random picks), which is why it
+  lost the least.
+- **Sentiment helped on point estimates only.** Adding headline sentiment moved mean return
+  per trade from -0.086% to +0.011%, but the intervals overlap. With one year of news, most
   training windows contain no headlines.
-- The final model's validation loss is 0.6931 (= ln 2), meaning it learned roughly the base
-  rate. On 2026-10-26 no ticker cleared the 0.55 threshold (top: MRK at 0.52), so the bot
-  placed no orders.
+- **Not comparable with SPY.** SPY returned +35% fully invested and held overnight; the
+  strategy holds at most 20% of equity, only between the open and the close.
+
+**Diagnostic: return by model confidence**
+
+![Return by LSTM confidence decile](docs/img/backtest-deciles.png)
+
+Each session's 100 stocks are split into deciles by the LSTM's `p_up`. If the model ranked
+stocks well, the bars would rise from D1 to D10. They don't: D10 earns about the same as the
+average stock, which matches the accuracy numbers above. This is the main thing a better
+feature set or label would have to fix.
 
 Daily open-to-close direction for large caps is close to a coin flip. This pipeline is built
 to measure that honestly: walk-forward folds, an embargo, train-only normalization, and

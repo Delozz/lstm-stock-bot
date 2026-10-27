@@ -169,8 +169,8 @@ def spy_returns(conn: sqlite3.Connection, benchmark: str, sessions: np.ndarray) 
 
 def run_backtest(
     conn: sqlite3.Connection, cfg: dict[str, Any], device: torch.device, *, ablation: bool = True
-) -> tuple[dict[str, dict], dict[str, pd.Series]]:
-    """Returns (metrics per model, daily return series per model)."""
+) -> tuple[dict[str, dict], dict[str, pd.Series], pd.DataFrame]:
+    """Returns (metrics per model, daily return series per model, out-of-sample predictions)."""
     scfg, seed = cfg["strategy"], cfg["seed"]
     preds = walk_forward_predictions(load_features(conn), cfg, device, ablation=ablation)
     sessions = np.sort(preds["session_date"].unique())
@@ -185,4 +185,4 @@ def run_backtest(
     curves["random"], metrics["random"] = random_baseline(preds, sessions, scfg, seed)
     curves["spy"] = spy_returns(conn, cfg["benchmark"], sessions)
     metrics["spy"] = summarize(curves["spy"], None, None, seed)
-    return metrics, curves
+    return metrics, curves, preds

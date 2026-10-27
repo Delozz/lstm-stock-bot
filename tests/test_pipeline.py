@@ -10,6 +10,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import torch
 
@@ -47,13 +48,19 @@ def populated(conn, make_bars, add_bars):
 
 
 def test_backtest_and_report(populated, small_cfg, tmp_path):
-    metrics, curves = run_backtest(populated, small_cfg, torch.device("cpu"))
+    metrics, curves, preds = run_backtest(populated, small_cfg, torch.device("cpu"))
     assert set(metrics) == {"lstm", "lstm_no_sentiment", "logreg", "random", "spy"}
     assert metrics["lstm"]["n_trades"] > 0
     assert 0 <= metrics["lstm"]["accuracy"] <= 1
 
     report = write_backtest_report(
-        metrics, curves, run_id="lstm-test", cfg=small_cfg, git_sha="abc123", out_dir=tmp_path
+        metrics,
+        curves,
+        preds,
+        run_id="lstm-test",
+        cfg=small_cfg,
+        git_sha="abc123",
+        out_dir=tmp_path,
     )
     text = report.read_text()
     for needle in (
@@ -69,6 +76,9 @@ def test_backtest_and_report(populated, small_cfg, tmp_path):
     ):
         assert needle in text
     assert report.with_suffix(".png").stat().st_size > 0
+    stem = report.with_suffix("")
+    assert Path(f"{stem}-deciles.png").stat().st_size > 0
+    assert set(pd.read_csv(f"{stem}-daily.csv", index_col=0).columns) == set(curves)
     payload = json.loads(report.with_suffix(".json").read_text())
     assert payload["seed"] == 42 and payload["git_sha"] == "abc123"
 
