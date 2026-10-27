@@ -1,4 +1,4 @@
-# stockbot
+# Long Short Term Stock Predictor Bot
 
 A daily S&P 500 direction model: a 2-layer LSTM over 20 sessions of price features and
 Finnhub headline sentiment (VADER), validated with a leakage-checked walk-forward backtest
